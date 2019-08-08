@@ -5,9 +5,8 @@
 通过接收自定义的脚本参数，自动发送邮件
 '''
 
-import libs.sendEmail as mail
-import configs.serverConfgSets as servers
-import configs.senders as senders
+from libs import sendEmail as mail
+from configs import senders as senders, serverConfgSets as servers
 import sys,os
 import getopt
 
@@ -20,16 +19,15 @@ if __name__ == '__main__':
                   + '\n\r  -s --sub     # The subject of this mail.'\
                   + '\n\r  -h --help    # Show this page and exit.'\
 
-
     #发件人 以及发件服务器登录信息
     sender = senders.mail189_my
     #发件服务器配置
-    server:servers.__ServerConfig = servers.mail189
+    server:servers.__ServerConfig = servers.sinitek
     SMTPserver:str = server.smtp_host
     SMTPserverPort:int = server.smtp_ssl_port
-
     #设置默认值
-    reciverAddrs:list = [sender.addr]
+    reciverAddrs:list = [sender.addr]   # 接收人，默认使用发送者地址
+
     reciverAddrByArgs:list = []
     context:str = '您设置的脚本提醒邮件已发出，请注意查收。'
     # 邮件主题默认值
@@ -75,9 +73,8 @@ if __name__ == '__main__':
     # fileList.append('')
 
     #优先使用通过参数设置的收件人。
-    if reciverAddrByArgs.__sizeof__() != 0:
+    if reciverAddrByArgs.__len__() > 0:
         reciverAddrs = reciverAddrByArgs
-
 
     mail.smtpPostMail(SMTPserver
                       , SMTPserverPort
@@ -89,4 +86,5 @@ if __name__ == '__main__':
                       , subject=subject
                       , context=context
                       , fileList = fileList)
-					  
+
+

@@ -5,13 +5,14 @@
 '''
 
 class __sender(object):
-    passWord = ''
-    addr = ''
-    account = addr
-    name = ''
+    passWord:str = ''
+    addr:str = ''
+    account:str = addr
+    name:str = ''
 
-class mail189_my(__sender):	# 默认使用的
-    passWord = ''
-    addr = ''
-    account = addr
-    name = '我'
+class mail189_my(__sender):
+    passWord:str = ''
+    addr:str = ''
+    account:str = addr
+    name:str = '我'
+
