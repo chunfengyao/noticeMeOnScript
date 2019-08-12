@@ -10,9 +10,21 @@ from configs import senders as senders, serverConfgSets as servers
 import sys,os
 import getopt
 
+'''''
+脚本调用是返回的错误码说明：
+2：参数错误
+3：SMTP服务器连接失败
+4：SMTP服务器的响应有问题，或者未收到SMTP服务器的响应
+9：其他未覆盖到的异常的统一返回码
+
+'''
+
 if __name__ == '__main__':
     # print('脚本：' + sys.argv[0] + '已被调用')
-
+	
+'''''
+可以通过多次调用 -f 参数，添加多个附件
+'''
     commandLineAgrsHelp:str = '\n\r  -t --to      # Someone who you want to mail to.'\
                   + '\n\r  -m --msg     # The mail content.'\
                   + '\n\r  -f --file    # The file which you want to attach to the mail.'\
@@ -20,7 +32,7 @@ if __name__ == '__main__':
                   + '\n\r  -h --help    # Show this page and exit.'\
 
     #发件人 以及发件服务器登录信息
-    sender = senders.mail189_my
+    sender = senders.mail189
     #发件服务器配置
     server:servers.__ServerConfig = servers.sinitek
     SMTPserver:str = server.smtp_host
@@ -43,7 +55,7 @@ if __name__ == '__main__':
         # 输入的参数有误
         print('Unkown Argument! ' + err.msg + '!' +
               '\n\rOnly accept these args.\n\r' + commandLineAgrsHelp)
-        exit(-1)
+        exit(2)
 
     for optName,optValue in options:
         if optName in ('-t', '--to'):

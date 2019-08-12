@@ -22,7 +22,7 @@ def _format_addr(s:str):
     return formataddr(
         (Header.Header(name, 'utf-8').encode(),
         addr if isinstance(addr, str) else addr)
-    ) #仅仅P    ython3中生效，Python3默认的str就是unicode
+    ) #仅仅Python3中生效，Python3默认的str就是unicode
 
 
 def smtpPostMail(SMTPserver:str = ''
@@ -37,7 +37,13 @@ def smtpPostMail(SMTPserver:str = ''
     # 连接并登陆登录
     # mailserver = smtplib.SMTP(SMTPserver, 25)
     # ssl的端口号默认是465
-    mailserver = smtplib.SMTP_SSL(host=SMTPserver, port=SMTPserverPort)
+    try:
+        mailserver = smtplib.SMTP_SSL(host=SMTPserver, port=SMTPserverPort, timeout=15.0)
+    except Exception as e:
+        print('Sorry, Connect failed with the smtp server!!!')
+        print('Here is the Exception msg:')
+        print(e)
+        exit(3)
     # 调试等级
     # mailserver.set_debuglevel(1)
     mailserver.login(username, password)
@@ -70,6 +76,7 @@ def smtpPostMail(SMTPserver:str = ''
             fileDataToEmail.add_header('Content-Disposition', 'attachment', filename=file.name)
             msg.attach(fileDataToEmail)
             attachListDesc += filePath
+            attachListDesc += '\n\t'
         # print('已添加附件：%s' %(filePath))
 
     print('\n\r #The mail to send seems like：')
@@ -79,12 +86,45 @@ def smtpPostMail(SMTPserver:str = ''
     print(' ##Context：' + context)
     print(' ##AttachList：' + attachListDesc)
 
-    # 开始发送(sender、reciver不可为中文！)
-    mailserver.sendmail(from_addr=senderAddr, to_addrs=reciverAddr, msg=msg.as_string())
-    # mailserver.send_message(msg=msg, from_addr=senderAddr, to_addrs=reciverAddr)
-    # mailserver.sendmail(from_addr='', to_addrs=reciver, msg=msg.__str__().encode("utf-8"))
+    try:
+        # 开始发送(sender、reciver不可为中文！)
+        mailserver.sendmail(from_addr=senderAddr, to_addrs=reciverAddr, msg=msg.as_string())
+        # mailserver.send_message(msg=msg, from_addr=senderAddr, to_addrs=reciverAddr)
+        # mailserver.sendmail(from_addr='', to_addrs=reciver, msg=msg.__str__().encode("utf-8"))
+    except smtplib.SMTPHeloError as e:
+        print('Failed to get the hello msg from SMTP Server. Please check the SMTP settings for your mail account.')   #接收方服务器拒绝收信
+        print('Here is the Exception msg:')
+        print(e)
+        exit(4)
+    except smtplib.SMTPRecipientsRefused as e:
+        print('This mail is refused by recipient\'s server.')   #接收方服务器拒绝收信
+        print('Here is the Exception msg:')
+        print(e)
+        exit(4)
+    except smtplib.SMTPSenderRefused as e:
+        print('The post mail request was refused by SMTP Server. Please contract to server\'s administrator.')
+        print('Here is the Exception msg:')
+        print(e)
+        exit(4)
+    except smtplib.SMTPDataError as e:
+        print('This server reply the error data. Please retry later')
+        print('Here is the Exception msg:')
+        print(e)
+        exit(4)
+    except smtplib.SMTPNotSupportedError as e:
+        print('This server seems not support SMTP. Please check and retry.')
+        print('Here is the Exception msg:')
+        print(e)
+        exit(4)
+    except Exception as e:
+        print('Sorry, something error! We failed to post this mail, you can retry later...')
+        print('Here is the Exception msg:')
+        exit(9)
+
+    print('\n\r # Mail with subject：%s \n\rSended Sucessful !' % (subject))
+    #退出服务器
     mailserver.quit()
-    print('\n\r #Mail with subject：%s \n\rSended Sucessful !' % (subject))
+    exit(0)
 
 
 def listAllFileFromPathSet(path:list = [str]):
