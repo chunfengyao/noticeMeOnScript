@@ -4,9 +4,9 @@
 '''''
 通过接收自定义的脚本参数，自动发送邮件
 '''
-
+from configs import senders
+from configs.senders import _ServerConfig, _sender
 from libs import sendEmail as mail
-from configs import senders as senders, serverConfgSets as servers
 import sys,os
 import getopt
 
@@ -21,10 +21,7 @@ import getopt
 
 if __name__ == '__main__':
     # print('脚本：' + sys.argv[0] + '已被调用')
-	
-'''''
-可以通过多次调用 -f 参数，添加多个附件
-'''
+
     commandLineAgrsHelp:str = '\n\r  -t --to      # Someone who you want to mail to.'\
                   + '\n\r  -m --msg     # The mail content.'\
                   + '\n\r  -f --file    # The file which you want to attach to the mail.'\
@@ -32,13 +29,13 @@ if __name__ == '__main__':
                   + '\n\r  -h --help    # Show this page and exit.'\
 
     #发件人 以及发件服务器登录信息
-    sender = senders.mail189
+    sender:_sender = senders.mailoutlook_someone
     #发件服务器配置
-    server:servers.__ServerConfig = servers.sinitek
+    server:_ServerConfig = sender.server
     SMTPserver:str = server.smtp_host
     SMTPserverPort:int = server.smtp_ssl_port
     #设置默认值
-    reciverAddrs:list = [sender.addr]   # 接收人，默认使用发送者地址
+    reciverAddrs:list = ['$your_reciver']   # 接收人，也可以为空数组，然后每次通过命令传进来。
 
     reciverAddrByArgs:list = []
     context:str = '您设置的脚本提醒邮件已发出，请注意查收。'
@@ -88,15 +85,11 @@ if __name__ == '__main__':
     if reciverAddrByArgs.__len__() > 0:
         reciverAddrs = reciverAddrByArgs
 
-    mail.smtpPostMail(SMTPserver
-                      , SMTPserverPort
-                      , username=sender.account
-                      , password=sender.passWord
-                      , senderName=sender.name
-                      , senderAddr = sender.addr
+    mail.smtpPostMail(sender = sender
                       , reciverAddr=reciverAddrs
                       , subject=subject
                       , context=context
                       , fileList = fileList)
+
 
 

@@ -16,6 +16,8 @@ import email.header as Header
 from email.utils import parseaddr, formataddr
 from email import encoders
 
+from configs.senders import _sender
+
 
 def _format_addr(s:str):
     name, addr = parseaddr(s)
@@ -24,29 +26,35 @@ def _format_addr(s:str):
         addr if isinstance(addr, str) else addr)
     ) #仅仅Python3中生效，Python3默认的str就是unicode
 
-
-def smtpPostMail(SMTPserver:str = ''
-                 , SMTPserverPort:int = ''
-                 , username:str = ''
-                 , password:str = ''
-                 , senderName:str = ''
-                 , senderAddr:str = ''
+def smtpPostMail(sender:_sender
                  , reciverAddr:list = [str]
                  , subject:str ='', context:str ='', fileList:list = [str]):
 
-    # 连接并登陆登录
-    # mailserver = smtplib.SMTP(SMTPserver, 25)
-    # ssl的端口号默认是465
     try:
-        mailserver = smtplib.SMTP_SSL(host=SMTPserver, port=SMTPserverPort, timeout=15.0)
+        if sender.serverOnSSL:
+            # ssl的端口号默认是465
+            mailserver = smtplib.SMTP_SSL(host=sender.server.smtp_host, port=sender.server.smtp_ssl_port)
+        else:
+            # 连接并登陆登录
+            mailserver = smtplib.SMTP(sender.server.smtp_host, sender.server.smtp_port)
+        mailserver.timeout=10
+        mailserver.ehlo()  # 发送SMTP 'ehlo' 命令
+        try:
+            mailserver.starttls()
+        except Exception as e:
+            print('StarTTLS may not supported by this server!')
+            print('Here is the Exception msg:')
+            print(e)
     except Exception as e:
-        print('Sorry, Connect failed with the smtp server!!!')
+        print('Sorry, Failed to connect the smtp server!!!')
         print('Here is the Exception msg:')
         print(e)
+        #终止流程
         exit(3)
+        return
     # 调试等级
     # mailserver.set_debuglevel(1)
-    mailserver.login(username, password)
+    mailserver.login(sender.account, sender.passWord)
 
 
     # 取出所有的接收者
@@ -56,7 +64,7 @@ def smtpPostMail(SMTPserver:str = ''
             recivers += u'%s <%s>' % (reciver,reciver)  #拼接到一起
 
     msg = MIMEMultipart()
-    msg['From'] = _format_addr(u'%s <%s>'% (senderName,senderAddr))
+    msg['From'] = _format_addr(u'%s <%s>'% (sender.name,sender.addr))
     msg['To'] = _format_addr(recivers)
     msg['Subject'] = Header.Header(u'%s'% subject, 'utf-8').encode()
     msg['Content-Type'] = "text/html; charset=utf-8"
@@ -73,14 +81,13 @@ def smtpPostMail(SMTPserver:str = ''
         if os.path.exists(filePath) and os.path.isfile(filePath):
             file = open(filePath, 'rb')
             fileDataToEmail = MIMEApplication(file.read())
-            fileDataToEmail.add_header('Content-Disposition', 'attachment', filename=file.name)
+            safeFileName:str = file.name.split(os.path.sep)[-1]
+            fileDataToEmail.add_header('Content-Disposition', 'attachment', filename=safeFileName)
             msg.attach(fileDataToEmail)
-            attachListDesc += filePath
-            attachListDesc += '\n\t'
-        # print('已添加附件：%s' %(filePath))
+            attachListDesc += u'%s at %s'% (safeFileName, filePath)
 
-    print('\n\r #The mail to send seems like：')
-    print(' ##From：' + u'%s <%s>'% (senderName, senderAddr))
+    print('\n\r #The mail to send is：')
+    print(' ##From：' + u'%s <%s>'% (sender.name, sender.addr))
     print(' ##To：' + recivers)
     print(' ##Subject：' + subject)
     print(' ##Context：' + context)
@@ -88,7 +95,7 @@ def smtpPostMail(SMTPserver:str = ''
 
     try:
         # 开始发送(sender、reciver不可为中文！)
-        mailserver.sendmail(from_addr=senderAddr, to_addrs=reciverAddr, msg=msg.as_string())
+        mailserver.sendmail(from_addr=sender.addr, to_addrs=reciverAddr, msg=msg.as_string())
         # mailserver.send_message(msg=msg, from_addr=senderAddr, to_addrs=reciverAddr)
         # mailserver.sendmail(from_addr='', to_addrs=reciver, msg=msg.__str__().encode("utf-8"))
     except smtplib.SMTPHeloError as e:
@@ -126,7 +133,6 @@ def smtpPostMail(SMTPserver:str = ''
     mailserver.quit()
     exit(0)
 
-
 def listAllFileFromPathSet(path:list = [str]):
     allFilesList = []
     # 文件夹处理（生成文件列表）
@@ -134,11 +140,10 @@ def listAllFileFromPathSet(path:list = [str]):
         # 如果是目录的话，递归遍历目录
         if os.path.exists(filePath) and os.path.isdir(filePath):
             for rootDirPath, dirs, files in os.walk(filePath):
-                # for i in dirs:
-                #     print(os.path.abspath(root)+'/'+i)
                 for file in files:
                     allFilesList.append(os.path.abspath(rootDirPath) + '/' + file)
         # 如果是文件的话，直接附加上去
         elif os.path.exists(filePath) and os.path.isfile(filePath):
             allFilesList.append(filePath)
     return allFilesList
+
